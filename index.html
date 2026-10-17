@@ -1,0 +1,473 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="description" content="Search over 250 million research papers from the open OpenAlex index.">
+<title>Paper Finder: search open research papers</title>
+<link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Sans:wght@400;500;600&family=Source+Serif+4:opsz,wght@8..60,600;8..60,700&display=swap" rel="stylesheet">
+<style>
+:root{color-scheme:light dark;--bg:#eef2f5;--surface:#fff;--ink:#14202b;--muted:#46566a;--line:#b9c5d0;--accent:#0b6060;--accent-ink:#fff;--hdr:#14202b;--hdr-ink:#fff;--fs:100%}
+@media (prefers-color-scheme:dark){:root:not([data-theme=light]){--bg:#10171d;--surface:#18222b;--ink:#e8eef3;--muted:#a7b6c3;--line:#3a4a58;--accent:#5fd0d0;--accent-ink:#06191a;--hdr:#0a0f14;--hdr-ink:#e8eef3}}
+:root[data-theme=dark]{color-scheme:dark;--bg:#10171d;--surface:#18222b;--ink:#e8eef3;--muted:#a7b6c3;--line:#3a4a58;--accent:#5fd0d0;--accent-ink:#06191a;--hdr:#0a0f14;--hdr-ink:#e8eef3}
+*{box-sizing:border-box}
+html{font-size:var(--fs)}
+body{margin:0;background:var(--bg);color:var(--ink);font:1rem/1.6 "IBM Plex Sans",system-ui,sans-serif}
+.skip{position:absolute;left:12px;top:-60px;background:var(--accent);color:var(--accent-ink);padding:10px 16px;border-radius:0 0 6px 6px;font-weight:600;z-index:10}
+.skip:focus{top:0}
+:focus-visible{outline:3px solid var(--accent);outline-offset:3px}
+header.bar{background:var(--hdr);color:var(--hdr-ink)}
+.bar-in{max-width:900px;margin:0 auto;padding:12px 20px;display:flex;justify-content:space-between;align-items:center;gap:12px;flex-wrap:wrap}
+.brand{font:700 1.3rem "Source Serif 4",Georgia,serif}
+.tools{display:flex;gap:8px;align-items:center}
+.tools button{min-height:44px;min-width:44px;padding:0 12px;border:1.5px solid currentColor;background:transparent;color:inherit;border-radius:6px;font:inherit;cursor:pointer}
+.tools :focus-visible{outline-color:#fff}
+main{max-width:900px;margin:0 auto;padding:36px 20px 64px}
+h1{font:700 clamp(1.9rem,5vw,2.8rem)/1.15 "Source Serif 4",Georgia,serif;margin:0 0 8px}
+.sub{color:var(--muted);margin:0 0 28px;max-width:62ch}
+.search{display:flex;gap:10px;flex-wrap:wrap}
+.search .field{flex:1 1 280px}
+label{font-weight:600;display:block;margin-bottom:6px}
+input[type=search],input[type=number],select{width:100%;min-height:48px;padding:10px 14px;font:inherit;color:var(--ink);background:var(--surface);border:1.5px solid var(--line);border-radius:6px}
+.btn{min-height:48px;padding:0 26px;border:2px solid var(--accent);border-radius:6px;background:var(--accent);color:var(--accent-ink);font:inherit;font-weight:600;cursor:pointer}
+.btn.alt{background:transparent;color:var(--accent)}
+.search .btn{align-self:flex-end}
+fieldset{margin:20px 0 28px;padding:16px 18px;border:1px solid var(--line);border-radius:8px;background:var(--surface);display:grid;grid-template-columns:repeat(auto-fit,minmax(190px,1fr));gap:16px;align-items:end}
+legend{font-weight:600;padding:0 6px}
+.check{display:flex;align-items:center;gap:10px;min-height:48px;margin:0;font-weight:500}
+.check input{width:22px;height:22px;accent-color:var(--accent)}
+h2#rh{font:600 1.15rem "IBM Plex Sans",sans-serif;margin:0 0 4px}
+#status{color:var(--muted);margin:0 0 16px;min-height:1.6em}
+ol{list-style:none;margin:0;padding:0}
+article{background:var(--surface);border:1px solid var(--line);border-left:5px solid var(--accent);border-radius:6px;padding:18px 20px;margin-bottom:14px}
+article h3{font:600 1.25rem/1.3 "Source Serif 4",Georgia,serif;margin:0 0 6px}
+.meta{color:var(--muted);font-size:.92rem;margin:0 0 10px}
+details summary{cursor:pointer;color:var(--accent);font-weight:600;min-height:32px}
+details p{margin:8px 0 0;max-width:72ch}
+.actions{display:flex;gap:10px;flex-wrap:wrap;margin-top:12px}
+.actions a,.actions button{min-height:44px;display:inline-flex;align-items:center;padding:0 16px;border:1.5px solid var(--accent);border-radius:6px;color:var(--accent);background:transparent;font:inherit;font-weight:600;text-decoration:none;cursor:pointer}
+.actions a.primary{background:var(--accent);color:var(--accent-ink)}
+.skeleton{height:110px;border-radius:6px;margin-bottom:14px;background:linear-gradient(90deg,var(--line),var(--surface),var(--line));background-size:200% 100%;animation:sh 1.4s infinite}
+@keyframes sh{to{background-position:-200% 0}}
+#more{display:none;margin:24px auto 0}
+footer{max-width:900px;margin:0 auto;padding:0 20px 40px;color:var(--muted);font-size:.9rem}
+footer a{color:var(--accent)}
+@media (prefers-reduced-motion:reduce){.skeleton{animation:none}*{scroll-behavior:auto!important}}
+@media (forced-colors:active){article{border:1px solid CanvasText}.btn{border:2px solid ButtonText}}
+@media print{.bar,form,fieldset,.actions,#more,.skip{display:none}article{break-inside:avoid}}
+.key{margin:0 0 24px;background:var(--surface);border:1px solid var(--line);border-radius:8px;padding:12px 18px}
+.key summary{cursor:pointer;font-weight:600;color:var(--accent);min-height:32px}
+.key p{margin:8px 0;max-width:68ch;color:var(--muted)}
+.key a{color:var(--accent)}
+.keyrow{display:flex;gap:10px;flex-wrap:wrap;align-items:flex-end}
+.keyrow .field{flex:1 1 260px}
+dialog{max-width:720px;width:92%;max-height:86vh;overflow:auto;border:1px solid var(--line);border-radius:8px;background:var(--surface);color:var(--ink);padding:22px}
+dialog::backdrop{background:rgba(0,0,0,.55)}
+dialog h2{font:700 1.4rem "Source Serif 4",Georgia,serif;margin:0 0 12px}
+dialog h3{font:600 1.05rem "IBM Plex Sans",sans-serif;margin:16px 0 6px}
+ul.plain{list-style:none;margin:0;padding:0}
+ul.plain li{display:flex;justify-content:space-between;gap:12px;align-items:center;padding:10px 0;border-bottom:1px solid var(--line)}
+ul.plain li button{min-height:44px;padding:0 14px;border:1.5px solid var(--accent);border-radius:6px;background:transparent;color:var(--accent);font:inherit;font-weight:600;cursor:pointer}
+ul.tr{list-style:none;margin:0 0 12px;padding:0}
+ul.tr li{display:grid;grid-template-columns:minmax(90px,210px) 1fr 84px;gap:10px;align-items:center;margin:5px 0;font-size:.92rem}
+.track{height:14px;background:var(--line);border-radius:3px;overflow:hidden}
+.fill{display:block;height:100%;background:var(--accent)}
+#trends{margin-bottom:16px}
+#trends section{background:var(--surface);border:1px solid var(--line);border-radius:8px;padding:6px 18px;margin-bottom:12px}
+#trendbtn{margin:0 0 16px}
+.sr{position:absolute;width:1px;height:1px;overflow:hidden;clip:rect(0 0 0 0)}
+</style>
+</head>
+<body>
+<a class="skip" href="#main">Skip to search</a>
+<header class="bar">
+  <div class="bar-in">
+    <span class="brand">Paper Finder</span>
+    <div class="tools" role="group" aria-label="Display settings">
+      <button type="button" id="smaller" aria-label="Decrease text size">A&minus;</button>
+      <button type="button" id="larger" aria-label="Increase text size">A+</button>
+      <button type="button" id="openlist">Reading list (0)</button>
+      <button type="button" id="theme" aria-label="Switch color theme">Theme: Auto</button>
+    </div>
+  </div>
+</header>
+
+<main id="main" tabindex="-1">
+  <h1>Find research papers</h1>
+  <p class="sub">Search or browse scholarly papers from OpenAlex, a free and open index covering every field of research worldwide. <span id="stat"></span></p>
+
+  <form id="f" role="search" aria-label="Paper search">
+    <div class="search">
+      <div class="field">
+        <label for="q">Topic, title, or keywords (leave empty to browse a whole field)</label>
+        <input type="search" id="q" name="q" placeholder="For example: retrieval augmented generation" autocomplete="off">
+      </div>
+      <button class="btn" type="submit">Search papers</button>
+    </div>
+    <fieldset>
+      <legend>Refine results</legend>
+      <div>
+        <label for="field">Field of research</label>
+        <select id="field">
+          <option value="">All fields</option>
+          <option value="11">Agricultural and Biological Sciences</option>
+          <option value="12">Arts and Humanities</option>
+          <option value="13">Biochemistry, Genetics and Molecular Biology</option>
+          <option value="14">Business, Management and Accounting</option>
+          <option value="15">Chemical Engineering</option>
+          <option value="16">Chemistry</option>
+          <option value="17">Computer Science</option>
+          <option value="35">Dentistry</option>
+          <option value="18">Decision Sciences</option>
+          <option value="19">Earth and Planetary Sciences</option>
+          <option value="20">Economics, Econometrics and Finance</option>
+          <option value="21">Energy</option>
+          <option value="22">Engineering</option>
+          <option value="23">Environmental Science</option>
+          <option value="36">Health Professions</option>
+          <option value="24">Immunology and Microbiology</option>
+          <option value="25">Materials Science</option>
+          <option value="26">Mathematics</option>
+          <option value="27">Medicine</option>
+          <option value="28">Neuroscience</option>
+          <option value="29">Nursing</option>
+          <option value="30">Pharmacology, Toxicology and Pharmaceutics</option>
+          <option value="31">Physics and Astronomy</option>
+          <option value="32">Psychology</option>
+          <option value="33">Social Sciences</option>
+          <option value="34">Veterinary</option>
+        </select>
+      </div>
+      <div>
+        <label for="sort">Sort by</label>
+        <select id="sort">
+          <option value="relevance_score:desc">Best match</option>
+          <option value="cited_by_count:desc">Most cited</option>
+          <option value="publication_date:desc">Newest first</option>
+        </select>
+      </div>
+      <div>
+        <label for="year">Published in or after (year)</label>
+        <input type="number" id="year" min="1900" max="2026" inputmode="numeric" placeholder="For example: 2020">
+      </div>
+      <label class="check"><input type="checkbox" id="oa"> Free to read only</label>
+      <div>
+        <label for="minc">Minimum citations</label>
+        <input type="number" id="minc" min="0" inputmode="numeric" placeholder="For example: 100">
+      </div>
+      <div>
+        <label for="lang">Language</label>
+        <select id="lang"><option value="">Any language</option><option value="en">English</option><option value="hi">Hindi</option><option value="es">Spanish</option><option value="fr">French</option><option value="de">German</option><option value="zh">Chinese</option><option value="pt">Portuguese</option><option value="ru">Russian</option><option value="ja">Japanese</option><option value="ar">Arabic</option></select>
+      </div>
+      <div>
+        <label for="country">Author country</label>
+        <select id="country"><option value="">Any country</option><option value="IN">India</option><option value="US">United States</option><option value="GB">United Kingdom</option><option value="CN">China</option><option value="DE">Germany</option><option value="FR">France</option><option value="JP">Japan</option><option value="AU">Australia</option><option value="CA">Canada</option><option value="BR">Brazil</option><option value="KR">South Korea</option><option value="SG">Singapore</option></select>
+      </div>
+    </fieldset>
+  </form>
+
+  <details class="key" id="keybox">
+    <summary>Add your free OpenAlex key (recommended)</summary>
+    <p>OpenAlex now asks for a free key. Without one, you only get a small daily allowance and searches may stop working. <a href="https://openalex.org/settings/api" target="_blank" rel="noopener">Get your free key<span class="sr"> (opens in a new tab)</span></a>, then paste it here. It is saved only in this browser, and it is never added to shared links.</p>
+    <div class="keyrow">
+      <div class="field">
+        <label for="apikey">OpenAlex API key</label>
+        <input type="password" id="apikey" autocomplete="off" spellcheck="false">
+      </div>
+      <button class="btn alt" type="button" id="savekey">Save key</button>
+    </div>
+  </details>
+
+  <h2 id="rh" tabindex="-1">Results</h2>
+  <p id="status" role="status" aria-live="polite">Enter a topic, or pick a field and choose Search papers to browse it.</p>
+  <button id="trendbtn" class="btn alt" type="button" hidden>Show trends for this search</button>
+  <div id="trends" aria-live="polite"></div>
+  <ol id="results" aria-busy="false"></ol>
+  <button id="more" class="btn alt" type="button">Load more papers</button>
+</main>
+
+<dialog id="listdlg" aria-labelledby="ltitle">
+  <h2 id="ltitle">Reading list</h2>
+  <ul id="listbody" class="plain"></ul>
+  <div class="actions">
+    <button type="button" id="xb">Export BibTeX</button>
+    <button type="button" id="xc">Export CSV</button>
+    <button type="button" id="xa">Copy citations</button>
+    <button type="button" id="xclear">Clear list</button>
+    <button type="button" data-close>Close</button>
+  </div>
+</dialog>
+<dialog id="detdlg" aria-labelledby="dtitle">
+  <h2 id="dtitle"></h2>
+  <div id="dbody"></div>
+  <div class="actions"><button type="button" data-close>Close</button></div>
+</dialog>
+<footer>
+  Data from <a href="https://openalex.org" target="_blank" rel="noopener">OpenAlex<span class="sr"> (opens in a new tab)</span></a>, licensed CC0. Citations are generated automatically, so check them against the publisher page before submitting work.
+</footer>
+
+<script>
+const API = "https://api.openalex.org/works";
+const $ = id => document.getElementById(id);
+let cursor = "*", total = 0, shown = 0, papers = [], started = false;
+
+/* ---------- display settings (kept in this browser only) ---------- */
+const store = {
+  get(k){ try{ return localStorage.getItem(k); }catch(e){ return null; } },
+  set(k,v){ try{ localStorage.setItem(k,v); }catch(e){} }
+};
+let size = parseInt(store.get("pf-size")) || 100;
+let theme = store.get("pf-theme") || "auto";
+function applyDisplay(){
+  document.documentElement.style.setProperty("--fs", size + "%");
+  if(theme === "auto") document.documentElement.removeAttribute("data-theme");
+  else document.documentElement.setAttribute("data-theme", theme);
+  $("theme").textContent = "Theme: " + theme[0].toUpperCase() + theme.slice(1);
+  store.set("pf-size", size); store.set("pf-theme", theme);
+}
+$("smaller").onclick = () => { size = Math.max(85, size - 10); applyDisplay(); };
+$("larger").onclick  = () => { size = Math.min(150, size + 10); applyDisplay(); };
+$("theme").onclick   = () => { theme = {auto:"light", light:"dark", dark:"auto"}[theme]; applyDisplay(); };
+applyDisplay();
+
+/* ---------- helpers ---------- */
+function esc(s){ const d = document.createElement("div"); d.textContent = s ?? ""; return d.innerHTML; }
+function abstractText(inv){
+  if(!inv) return "";
+  const words = [];
+  for(const [w,pos] of Object.entries(inv)) pos.forEach(p => words[p] = w);
+  return words.join(" ");
+}
+function citation(w){
+  const names = (w.authorships||[]).map(a => a.author.display_name);
+  const who = names.length > 6 ? names.slice(0,6).join(", ") + ", et al." : names.join(", ") || "Unknown author";
+  const venue = w.primary_location?.source?.display_name;
+  return `${who} (${w.publication_year ?? "n.d."}). ${w.display_name}.${venue ? " " + venue + "." : ""}${w.doi ? " " + w.doi : ""}`;
+}
+function keyParam(){ const k = store.get("pf-key"); return k ? "&api_key=" + encodeURIComponent(k) : ""; }
+function say(msg){ $("status").textContent = msg; }
+
+/* ---------- rendering ---------- */
+function render(w, i){
+  const names = (w.authorships||[]).map(a => a.author.display_name);
+  const authorLine = names.length > 4 ? names.slice(0,4).join(", ") + " and " + (names.length-4) + " more" : names.join(", ");
+  const venue = w.primary_location?.source?.display_name;
+  const abs = abstractText(w.abstract_inverted_index);
+  const free = w.open_access?.oa_url;
+  return `<li><article aria-labelledby="t${i}">
+    <h3 id="t${i}" tabindex="-1">${esc(w.display_name)}</h3>
+    <p class="meta">${esc(authorLine || "Unknown author")}. ${w.publication_year ?? "Year unknown"}${venue ? ". " + esc(venue) : ""}. Cited ${w.cited_by_count.toLocaleString()} times.</p>
+    ${abs ? `<details><summary>Read abstract<span class="sr"> of ${esc(w.display_name)}</span></summary><p>${esc(abs)}</p></details>` : `<p class="meta">No abstract available.</p>`}
+    <div class="actions">
+      ${free ? `<a class="primary" href="${esc(free)}" target="_blank" rel="noopener">Read free copy<span class="sr"> of ${esc(w.display_name)} (opens in a new tab)</span></a>` : ""}
+      ${w.doi ? `<a href="${esc(w.doi)}" target="_blank" rel="noopener">Publisher page<span class="sr"> for ${esc(w.display_name)} (opens in a new tab)</span></a>` : ""}
+      <button type="button" data-save="${i}" aria-pressed="${saved(w.id)}">${saved(w.id) ? "Saved" : "Save to list"}<span class="sr"> ${esc(w.display_name)}</span></button>
+      <button type="button" data-detail="${i}">Cited by and related<span class="sr"> for ${esc(w.display_name)}</span></button>
+      <button type="button" data-cite="${i}">Copy citation<span class="sr"> for ${esc(w.display_name)}</span></button>
+    </div>
+  </article></li>`;
+}
+
+/* ---------- filters ---------- */
+function filters(){
+  const f = ["type:article|preprint|review|book|book-chapter|dissertation"];
+  if($("field").value) f.push("primary_topic.field.id:" + $("field").value);
+  if($("oa").checked) f.push("open_access.is_oa:true");
+  if($("year").value) f.push("from_publication_date:" + $("year").value + "-01-01");
+  if($("minc").value) f.push("cited_by_count:>" + Math.max(0, +$("minc").value - 1));
+  if($("lang").value) f.push("language:" + $("lang").value);
+  if($("country").value) f.push("authorships.countries:" + $("country").value);
+  return f;
+}
+
+/* ---------- search ---------- */
+async function load(reset){
+  const q = $("q").value.trim();
+  if(reset){ cursor = "*"; shown = 0; papers = []; started = true; $("results").innerHTML = ""; $("trends").innerHTML = ""; syncUrl(); }
+  const f = filters();
+  let sort = $("sort").value;
+  if(!q && sort.startsWith("relevance")) sort = "cited_by_count:desc";
+  const url = `${API}?${q ? "search=" + encodeURIComponent(q) + "&" : ""}filter=${f.join(",")}&sort=${sort}&per-page=20&cursor=${encodeURIComponent(cursor)}${keyParam()}` +
+    "&select=id,display_name,publication_year,authorships,primary_location,cited_by_count,doi,open_access,abstract_inverted_index,related_works,referenced_works_count";
+  say("Searching...");
+  $("results").setAttribute("aria-busy","true");
+  $("more").style.display = "none";
+  if(reset) $("results").innerHTML = '<li class="skeleton" aria-hidden="true"></li>'.repeat(3);
+  try{
+    const r = await fetch(url);
+    if(r.status === 401 || r.status === 403) throw new Error("OpenAlex rejected the request. Add a valid free API key in the key section above");
+    if(r.status === 429){ $("keybox").open = true; throw new Error("the free daily allowance is used up. Add your free API key in the key section above, or try again tomorrow"); }
+    if(!r.ok) throw new Error("status " + r.status);
+    const data = await r.json();
+    total = data.meta.count;
+    if(reset) $("results").innerHTML = "";
+    const start = papers.length;
+    papers.push(...data.results);
+    $("results").insertAdjacentHTML("beforeend", data.results.map((w,k) => render(w, start+k)).join(""));
+    shown = papers.length;
+    cursor = data.meta.next_cursor;
+    $("trendbtn").hidden = !total;
+    say(total ? `Showing ${shown} of ${total.toLocaleString()} papers.` : "No papers found. Try broader keywords, a different field, an earlier year, or turn off Free to read only.");
+    if(cursor && data.results.length) $("more").style.display = "block";
+    const target = reset ? $("rh") : document.getElementById("t" + start);
+    if(target && (reset || data.results.length)) target.focus({preventScroll:false});
+  }catch(e){
+    $("results").innerHTML = "";
+    say("The search could not finish. Check your internet connection, then choose Search papers to try again. Details: " + e.message);
+  }finally{
+    $("results").setAttribute("aria-busy","false");
+  }
+}
+
+/* ---------- shareable link ---------- */
+function syncUrl(){
+  try{
+    const p = new URLSearchParams({q:$("q").value.trim()});
+    if($("field").value) p.set("field",$("field").value);
+    if($("minc").value) p.set("minc",$("minc").value);
+    if($("lang").value) p.set("lang",$("lang").value);
+    if($("country").value) p.set("country",$("country").value);
+    if($("sort").value !== "relevance_score:desc") p.set("sort",$("sort").value);
+    if($("year").value) p.set("year",$("year").value);
+    if($("oa").checked) p.set("oa","1");
+    history.replaceState(null,"","?" + p);
+  }catch(e){}
+}
+(function restore(){
+  const p = new URLSearchParams(location.search);
+  if(p.get("q") || p.get("field")){
+    $("q").value = p.get("q") || "";
+    if(p.get("field")) $("field").value = p.get("field");
+    if(p.get("minc")) $("minc").value = p.get("minc");
+    if(p.get("lang")) $("lang").value = p.get("lang");
+    if(p.get("country")) $("country").value = p.get("country");
+    if(p.get("sort")) $("sort").value = p.get("sort");
+    if(p.get("year")) $("year").value = p.get("year");
+    $("oa").checked = p.get("oa") === "1";
+    load(true);
+  }
+})();
+
+/* ---------- events ---------- */
+$("f").addEventListener("submit", e => { e.preventDefault(); load(true); });
+["field","sort","year","oa","minc","lang","country"].forEach(id => $(id).addEventListener("change", () => started && load(true)));
+$("more").addEventListener("click", () => load(false));
+if(store.get("pf-key")) $("apikey").value = store.get("pf-key");
+$("savekey").addEventListener("click", () => {
+  const v = $("apikey").value.trim();
+  store.set("pf-key", v);
+  say(v ? "API key saved in this browser. Choose Search papers to use it." : "API key removed from this browser.");
+  $("status").scrollIntoView({block:"nearest"});
+});
+fetch(API + "?per-page=1&select=id" + keyParam().replace("&","&")).then(r => r.json()).then(d => {
+  $("stat").textContent = "Currently indexing " + d.meta.count.toLocaleString() + " works.";
+}).catch(() => {});
+$("results").addEventListener("click", async e => {
+  const sv = e.target.closest("[data-save]");
+  if(sv){
+    const n = +sv.dataset.save; toggleSave(n); const on = saved(papers[n].id);
+    sv.setAttribute("aria-pressed", on); sv.firstChild.textContent = on ? "Saved" : "Save to list";
+    say(on ? "Added to your reading list." : "Removed from your reading list."); return;
+  }
+  const dt = e.target.closest("[data-detail]");
+  if(dt){ details(+dt.dataset.detail); return; }
+  const b = e.target.closest("[data-cite]");
+  if(!b) return;
+  const text = citation(papers[+b.dataset.cite]);
+  try{ await navigator.clipboard.writeText(text); say("Citation copied to clipboard."); }
+  catch(err){ window.prompt("Copy this citation:", text); }
+});
+
+/* ---------- reading list ---------- */
+let list = [];
+try{ list = JSON.parse(store.get("pf-list") || "[]"); }catch(e){}
+function saved(id){ return list.some(x => x.id === id); }
+function persist(){ store.set("pf-list", JSON.stringify(list)); $("openlist").textContent = "Reading list (" + list.length + ")"; }
+function toggleSave(i){
+  const w = papers[i];
+  if(saved(w.id)) list = list.filter(x => x.id !== w.id);
+  else list.push({id:w.id, title:w.display_name, authors:(w.authorships||[]).map(a => a.author.display_name), year:w.publication_year, venue:w.primary_location?.source?.display_name || "", doi:w.doi || "", cited:w.cited_by_count, free:w.open_access?.oa_url || ""});
+  persist();
+}
+function renderList(){
+  $("listbody").innerHTML = list.length ? list.map((x,i) => `<li><div><strong>${esc(x.title)}</strong><br><span class="meta">${esc(x.authors.slice(0,3).join(", "))}${x.year ? ", " + x.year : ""}</span></div><button type="button" data-rm="${i}">Remove<span class="sr"> ${esc(x.title)}</span></button></li>`).join("")
+    : "<li>Your list is empty. Choose Save to list on any result.</li>";
+}
+function dl(name, text, type){
+  const a = document.createElement("a");
+  a.href = URL.createObjectURL(new Blob([text], {type})); a.download = name; a.click(); URL.revokeObjectURL(a.href);
+}
+function cite2(x){ return `${x.authors.join(", ") || "Unknown author"} (${x.year ?? "n.d."}). ${x.title}.${x.venue ? " " + x.venue + "." : ""}${x.doi ? " " + x.doi : ""}`; }
+function bibtex(){
+  return list.map(x => {
+    const key = ((x.authors[0] || "anon").split(" ").pop().replace(/\W/g,"") + (x.year || "") + x.title.split(" ")[0].replace(/\W/g,"")).toLowerCase();
+    return `@article{${key},\n  title={${x.title}},\n  author={${x.authors.join(" and ")}},\n  year={${x.year || ""}},\n  journal={${x.venue}},\n  doi={${x.doi.replace("https://doi.org/","")}}\n}`;
+  }).join("\n\n");
+}
+function csv(){
+  const q = v => '"' + String(v ?? "").replace(/"/g,'""') + '"';
+  return [["Title","Authors","Year","Venue","Citations","DOI","Free copy"].map(q).join(",")]
+    .concat(list.map(x => [x.title, x.authors.join("; "), x.year, x.venue, x.cited, x.doi, x.free].map(q).join(","))).join("\n");
+}
+$("openlist").onclick = () => { renderList(); $("listdlg").showModal(); };
+$("listbody").addEventListener("click", e => {
+  const b = e.target.closest("[data-rm]");
+  if(b){ list.splice(+b.dataset.rm, 1); persist(); renderList(); }
+});
+$("xb").onclick = () => list.length && dl("reading-list.bib", bibtex(), "text/plain");
+$("xc").onclick = () => list.length && dl("reading-list.csv", csv(), "text/csv");
+$("xa").onclick = async () => {
+  if(!list.length) return;
+  try{ await navigator.clipboard.writeText(list.map(cite2).join("\n\n")); say("Citations copied to clipboard."); }
+  catch(err){ window.prompt("Copy these citations:", list.map(cite2).join("\n\n")); }
+};
+$("xclear").onclick = () => { if(list.length && confirm("Remove all papers from your reading list?")){ list = []; persist(); renderList(); } };
+document.addEventListener("click", e => { const c = e.target.closest("[data-close]"); if(c) c.closest("dialog").close(); });
+persist();
+
+/* ---------- cited by and related ---------- */
+async function details(i){
+  const w = papers[i], short = w.id.split("/").pop();
+  $("dtitle").textContent = w.display_name;
+  $("dbody").innerHTML = "<p>Loading...</p>";
+  $("detdlg").showModal();
+  const sel = "&select=id,display_name,publication_year,cited_by_count,doi" + keyParam();
+  const get = u => fetch(u).then(r => { if(!r.ok) throw new Error("status " + r.status); return r.json(); });
+  try{
+    const rel = (w.related_works || []).slice(0,5).map(u => u.split("/").pop()).join("|");
+    const [cit, rl] = await Promise.all([
+      get(`${API}?filter=cites:${short}&sort=cited_by_count:desc&per-page=5${sel}`),
+      rel ? get(`${API}?filter=openalex:${rel}&per-page=5${sel}`) : Promise.resolve({results:[]})
+    ]);
+    const li = x => `<li><a href="${esc(x.doi || x.id)}" target="_blank" rel="noopener">${esc(x.display_name)}<span class="sr"> (opens in a new tab)</span></a> (${x.publication_year ?? "n.d."}, ${x.cited_by_count} citations)</li>`;
+    $("dbody").innerHTML = `<p>This paper cites ${w.referenced_works_count ?? 0} works and has been cited ${cit.meta.count.toLocaleString()} times.</p>
+      <h3>Most cited papers that cite it</h3><ul>${cit.results.map(li).join("") || "<li>None found.</li>"}</ul>
+      <h3>Related papers</h3><ul>${rl.results.map(li).join("") || "<li>None found.</li>"}</ul>`;
+  }catch(e){
+    $("dbody").innerHTML = "<p>Could not load details (" + esc(e.message) + "). Check your connection or API key, then try again.</p>";
+  }
+}
+
+/* ---------- trends ---------- */
+function bars(title, rows){
+  const m = Math.max(...rows.map(r => r.count), 1);
+  return `<section><h3>${title}</h3><ul class="tr">${rows.map(r => `<li><span>${esc(r.label)}</span><span class="track"><span class="fill" style="width:${Math.max(2, r.count / m * 100)}%"></span></span><b>${r.count.toLocaleString()}</b></li>`).join("")}</ul></section>`;
+}
+async function trends(){
+  const q = $("q").value.trim();
+  const base = `${API}?${q ? "search=" + encodeURIComponent(q) + "&" : ""}filter=${filters().join(",")}`;
+  $("trends").innerHTML = "<p>Loading trends...</p>";
+  try{
+    const [y, j] = await Promise.all(["publication_year", "primary_location.source.id"].map(g =>
+      fetch(`${base}&group_by=${g}${keyParam()}`).then(r => { if(!r.ok) throw new Error("status " + r.status); return r.json(); })));
+    const years = y.group_by.filter(x => /^\d{4}$/.test(x.key)).sort((a,b) => b.key - a.key).slice(0,12).map(x => ({label:x.key, count:x.count}));
+    const venues = j.group_by.filter(x => x.key_display_name && x.key !== "unknown").slice(0,8).map(x => ({label:x.key_display_name, count:x.count}));
+    $("trends").innerHTML = bars("Papers per year (latest 12 years)", years) + bars("Top journals and sources", venues);
+  }catch(e){
+    $("trends").innerHTML = "<p>Trends could not load (" + esc(e.message) + "). Try again in a moment.</p>";
+  }
+}
+$("trendbtn").addEventListener("click", trends);
+</script>
+</body>
+</html>
